@@ -42,4 +42,8 @@ public class EnsembleDeCartes {
     public boolean estVide() {
         return this.listeCartes.isEmpty();
     }
+
+    public boolean retirerCarte(Cartes c) {
+        return this.listeCartes.remove(c);
+    }
 }

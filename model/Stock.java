@@ -10,11 +10,11 @@ public class Stock extends EnsembleDeCartes {
     }
 
     public boolean a_gagner() {
-        if (this.listeCartes.size() == 3) {
+        if (this.getTaille() == 9) {
             return true;
         }
-        for (int i = 0; i < this.listeCartes.size(); i++) {
-            if (this.listeCartes.get(i).getValeur() == 77) {
+        for (Cartes c : this.listeCartes) {
+            if (c.getValeur() == 77) {
                 return true;
             }
         }
