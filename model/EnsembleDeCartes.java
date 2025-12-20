@@ -46,4 +46,8 @@ public class EnsembleDeCartes {
     public boolean retirerCarte(Cartes c) {
         return this.listeCartes.remove(c);
     }
+
+    public ArrayList<Cartes> getCartes() {
+        return this.listeCartes;
+    }
 }
