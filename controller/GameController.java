@@ -23,6 +23,8 @@ public class GameController {
         if (joueurs != null && !joueurs.isEmpty()) {
             game.start(joueurs);
             view.initialiserZoneJoueurs(game.getListeJoueurs(), this);
+            // On affiche la main du premier joueur
+            view.afficherMainJoueurActif(game.getJoueurActif());
             view.actualiserTourJoueur(game.getJoueurActif().getNom());
         }
     }
@@ -54,6 +56,7 @@ public class GameController {
 
         if (c != null) {
             view.revelerCarteDepuisMain(idJoueur, c);
+            // On affiche un log mais on garde la main active visible
             view.afficherMessage(game.getJoueurActif().getNom() + " révèle une carte de " + j.getNom());
             traiterSelection(c);
         }
@@ -81,7 +84,11 @@ public class GameController {
      */
     private void gererSucces() {
         view.afficherMessage("Trio trouvé par " + game.getJoueurActif().getNom() + " !");
-        view.actualiserScores(game.getListeJoueurs());
+
+        // Mise à jour complète (Scores + Main Joueur si ça change ou si trios ajoutés)
+        // Fait par Blusk : on actualise la vue globale avec scores, grille, mains après
+        // un succès
+        view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
 
         if (game.checkVictory()) {
             interactionVerrouillee = true;
@@ -99,7 +106,10 @@ public class GameController {
 
         Timer timer = new Timer(2000, e -> {
             view.cacherCartesGrille();
-            view.actualiserTourJoueur(game.getJoueurActif().getNom());
+            // Le modèle a déjà changé de joueur (Game.java:130)
+            // Fait par Blusk : on actualise la vue globale après une erreur pour être sur
+            // que les cartes sont retournées
+            view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
             interactionVerrouillee = false;
         });
         timer.setRepeats(false);
