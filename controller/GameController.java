@@ -41,7 +41,6 @@ public class GameController {
             view.revelerCarteGrille(index, c);
             traiterSelection(c);
         }
-        view.actualiserCartesManche(game.getSelectionManche());
     }
 
     /**
@@ -60,9 +59,8 @@ public class GameController {
             // On affiche un log mais on garde la main active visible
             view.afficherMessage(game.getJoueurActif().getNom() + " révèle une carte de " + j.getNom());
             traiterSelection(c);
+            
         }
-        view.actualiserCartesManche(game.getSelectionManche());
-
     }
 
     /**
@@ -91,7 +89,6 @@ public class GameController {
         // Mise à jour complète (Scores + Main Joueur si ça change ou si trios ajoutés)
         // Fait par Blusk : on actualise la vue globale avec scores, grille, mains après
         // un succès
-        view.actualiserCartesManche(new java.util.ArrayList<>());
         view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
 
         if (game.checkVictory()) {
@@ -113,7 +110,6 @@ public class GameController {
             // Le modèle a déjà changé de joueur (Game.java:130)
             // Fait par Blusk : on actualise la vue globale après une erreur pour être sur
             // que les cartes sont retournées
-            view.actualiserCartesManche(new java.util.ArrayList<>());
             view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
             interactionVerrouillee = false;
         });
