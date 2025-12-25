@@ -50,16 +50,15 @@ public class GameController {
         if (interactionVerrouillee)
             return;
 
-        // On récupère le joueur cible (idJoueur commence à 1 dans votre classe Joueur)
-        Joueur j = game.getListeJoueurs().get(idJoueur - 1);
-        Cartes c = estHaute ? j.getDeckJoueur().recupererCPH() : j.getDeckJoueur().recupererCPB();
+        // Utilisation de la méthode tirerCarteJoueur du modèle 
+        // qui gère le retrait du deck et la mise en réserve
+        Cartes c = game.tirerCarteJoueur(idJoueur - 1, estHaute);
 
         if (c != null) {
             view.revelerCarteDepuisMain(idJoueur, c);
-            // On affiche un log mais on garde la main active visible
-            view.afficherMessage(game.getJoueurActif().getNom() + " révèle une carte de " + j.getNom());
+            view.afficherMainJoueurActif(game.getJoueurActif());
+            view.afficherMessage(game.getJoueurActif().getNom() + " révèle une carte de " + game.getJoueurParId(idJoueur-1).getNom());
             traiterSelection(c);
-            
         }
     }
 
@@ -84,16 +83,30 @@ public class GameController {
      * Actions en cas de Trio trouvé.
      */
     private void gererSucces() {
-        view.afficherMessage("Trio trouvé par " + game.getJoueurActif().getNom() + " !");
+        // Le modèle a déjà fait nextPlayer(), donc le joueur qui a gagné le trio
+        // est le "joueur précédent"
+        Joueur gagnantPotentiel = game.getJoueurPrecedent();
+        
+        view.afficherMessage("Trio trouvé par " + gagnantPotentiel.getNom() + " !");
+        game.viderReserve();
 
-        // Mise à jour complète (Scores + Main Joueur si ça change ou si trios ajoutés)
-        // Fait par Blusk : on actualise la vue globale avec scores, grille, mains après
-        // un succès
-        view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
-
-        if (game.checkVictory()) {
+        // 1. On vérifie la victoire sur le BON joueur
+        if (game.checkVictory(gagnantPotentiel)) {
+            // On actualise une dernière fois pour voir le trio s'ajouter au score
+            view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
             interactionVerrouillee = true;
-            view.afficherVictoire(game.getJoueurActif().getNom());
+            view.afficherVictoire(gagnantPotentiel.getNom());
+        } 
+        else {
+            // 2. Si pas de victoire, on attend un peu et on passe au joueur suivant visuellement
+            interactionVerrouillee = true; // On bloque pendant l'animation
+            Timer timer = new Timer(2000, e -> {
+                view.cacherCartesGrille();
+                view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
+                interactionVerrouillee = false;
+            });
+            timer.setRepeats(false);
+            timer.start();
         }
     }
 
@@ -103,13 +116,15 @@ public class GameController {
      */
     private void gererErreur() {
         interactionVerrouillee = true;
-        view.afficherMessage("Raté ! Passage au joueur suivant...");
+        view.afficherMessage("Raté ! Les cartes retournent chez leurs propriétaires.");
 
         Timer timer = new Timer(2000, e -> {
+            // --- LOGIQUE DE RESTITUTION PRÉCISE ---
+            // Le modèle rend chaque carte au bon joueur (soi-même ou adversaire)
+            game.restituerToutesLesCartes();
+
             view.cacherCartesGrille();
-            // Le modèle a déjà changé de joueur (Game.java:130)
-            // Fait par Blusk : on actualise la vue globale après une erreur pour être sur
-            // que les cartes sont retournées
+            // On rafraîchit tout pour que chaque joueur retrouve ses cartes
             view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
             interactionVerrouillee = false;
         });

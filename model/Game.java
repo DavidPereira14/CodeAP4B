@@ -10,6 +10,20 @@ public class Game {
     private Pioche grilleCentrale;
     private int idJoueurActif;
 
+    // Structure interne pour lier une carte à son propriétaire d'origine
+    private class ReserveInfo {
+        Cartes carte;
+        int idProprietaire;
+
+        ReserveInfo(Cartes c, int id) {
+            this.carte = c;
+            this.idProprietaire = id;
+        }
+    }
+
+    // Liste des cartes sorties des mains avec leurs propriétaires
+    private List<ReserveInfo> cartesEnReserve = new ArrayList<>();
+
     // Liste temporaire pour les cartes retournées pendant le tour actuel
     private List<Cartes> cartesReveleesCeTour;
 
@@ -31,11 +45,7 @@ public class Game {
         distribuer();
     }
 
-    /**
-     * Application stricte de vos définitions de cartes
-     */
     private void preparerJeuDeCartes() {
-        // Liste de vos cartes spécifiques (Valeur, Nom, Image)
         Object[][] vosCartes = {
                 { 77, "AP4A", "carte/AP4B.png" }, { 75, "CMIA", "carte/CMIA.png" },
                 { 79, "IA41", "carte/IA41.png" }, { 83, "IF3B", "carte/IF3B.png" },
@@ -50,7 +60,6 @@ public class Game {
             String nom = (String) data[1];
             String img = (String) data[2];
 
-            // On ajoute 3 exemplaires de chaque carte pour former les trios
             for (int i = 0; i < 3; i++) {
                 this.paquetInitial.ajouterCarte(new Cartes(val, nom, img));
             }
@@ -59,12 +68,10 @@ public class Game {
     }
 
     private void distribuer() {
-        // 1. On remplit la grille (pioche) avec 9 cartes face cachée
         for (int i = 0; i < 9; i++) {
             this.grilleCentrale.ajouterCarte(this.paquetInitial.retirerDerniereCarte());
         }
 
-        // 2. On distribue le reste (27 cartes) équitablement aux joueurs
         int nbJoueurs = this.listeJoueurs.size();
         int indexJoueur = ThreadLocalRandom.current().nextInt(nbJoueurs);
 
@@ -74,24 +81,16 @@ public class Game {
             indexJoueur = (indexJoueur + 1) % nbJoueurs;
         }
 
-        // 3. Tri des mains (important pour pouvoir demander "plus haute / plus basse")
         for (Joueur j : listeJoueurs) {
             j.getDeckJoueur().trierCartes();
         }
     }
 
-    // --- LOGIQUE DU TOUR (Appelée par le Controller) ---
+    // --- LOGIQUE DU TOUR ---
 
-    /**
-     * Reçoit une carte sélectionnée (depuis la grille ou la main d'un joueur)
-     * 
-     * @param c La carte choisie
-     * @return 0: Continue, 1: Trio Trouvé, -1: Erreur/Fin de tour
-     */
     public int selectionnerCarte(Cartes c) {
         cartesReveleesCeTour.add(c);
 
-        // Si ce n'est pas la première carte, on compare
         if (cartesReveleesCeTour.size() > 1) {
             if (c.getValeur() != cartesReveleesCeTour.get(0).getValeur()) {
                 terminerLeTour(false);
@@ -99,7 +98,6 @@ public class Game {
             }
         }
 
-        // Si on a les trois
         if (cartesReveleesCeTour.size() == 3) {
             validerTrioGagne();
             terminerLeTour(true);
@@ -124,11 +122,50 @@ public class Game {
         }
     }
 
+    /**
+     * Rend chaque carte de la réserve à son propriétaire d'origine.
+     */
+    public void restituerToutesLesCartes() {
+        for (ReserveInfo info : cartesEnReserve) {
+            Joueur proprio = getJoueurParId(info.idProprietaire);
+            if (proprio != null) {
+                proprio.getDeckJoueur().ajouterCarte(info.carte);
+                proprio.getDeckJoueur().trierCartes();
+            }
+        }
+        this.cartesEnReserve.clear();
+    }
+
+    public void viderReserve() {
+        this.cartesEnReserve.clear();
+    }
+
+    public Joueur getJoueurParId(int id) {
+        if (id >= 0 && id < listeJoueurs.size()) {
+            return listeJoueurs.get(id);
+        }
+        return null;
+    }
+
+    public Cartes tirerCarteJoueur(int idJoueur, boolean estHaut) {
+        Joueur j = getJoueurParId(idJoueur);
+        if (j == null) return null;
+
+        // Appel de vos méthodes de DeckJoueur
+        Cartes c = estHaut ? j.getDeckJoueur().recupererCPH() : j.getDeckJoueur().recupererCPB();
+
+        if (c != null) {
+            j.getDeckJoueur().retirerCarte(c);
+            // On mémorise la carte ET l'ID du joueur à qui on l'a prise
+            this.cartesEnReserve.add(new ReserveInfo(c, idJoueur));
+            return c;
+        }
+        return null;
+    }
+
     private void terminerLeTour(boolean estSucces) {
         cartesReveleesCeTour.clear();
-        if (!estSucces) {
-            nextPlayer();
-        }
+       nextPlayer();
     }
 
     // --- UTILITAIRES ---
@@ -137,8 +174,13 @@ public class Game {
         this.idJoueurActif = (this.idJoueurActif + 1) % this.listeJoueurs.size();
     }
 
-    public boolean checkVictory() {
-        return getJoueurActif().getStock().a_gagner();
+    public boolean checkVictory(Joueur j) {
+        return j.getStock().a_gagner();
+    }
+    
+    public Joueur getJoueurPrecedent() {
+        int idPrecedent = (idJoueurActif - 1 + listeJoueurs.size()) % listeJoueurs.size();
+        return listeJoueurs.get(idPrecedent);
     }
 
     public Joueur getJoueurActif() {

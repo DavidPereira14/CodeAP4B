@@ -17,16 +17,17 @@ public class GameView extends JFrame {
     private JPanel panelMainJoueurActif;
     private JPanel containerJoueursNord;
     
-    // Nouveaux composants pour la manche
+    // Composants pour l'affichage de la manche (Haut-Droit)
     private JPanel panelCartesChoisies;
     private JLabel[] labelsCartesChoisies;
+    // Liste interne pour synchroniser l'affichage sans modifier le modèle
+    private List<Cartes> cartesMancheInterne = new ArrayList<>();
 
     private JLabel labelMessage;
     private JButton[] boutonsGrille;
     private String CHEMIN_DOS = "carte/back.png";
     private GameController controller;
 
-    // Constantes de taille harmonisées
     private final int CARTE_W = 70;
     private final int CARTE_H = 100;
 
@@ -43,7 +44,7 @@ public class GameView extends JFrame {
         labelMessage.setFont(new Font("Arial", Font.BOLD, 18));
         panelCentre.add(labelMessage, BorderLayout.NORTH);
 
-        initGrille(); // Grille 3x3 centrée
+        initGrille(); 
         this.add(panelCentre, BorderLayout.CENTER);
 
         // 2. Zones Joueurs et Manche
@@ -52,13 +53,16 @@ public class GameView extends JFrame {
         panelEst = new JPanel(new GridBagLayout());
         panelOuest = new JPanel(new GridBagLayout());
 
-        // Initialisation du bloc en haut à droite
+        // Initialisation du bloc "Manche" en haut à droite
         initPanelCartesChoisies();
         panelNord.add(panelCartesChoisies, BorderLayout.EAST);
 
         // Conteneur joueurs haut-gauche
         containerJoueursNord = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panelNord.add(containerJoueursNord, BorderLayout.WEST);
+
+        // Ajout du message au centre du bandeau Nord
+        panelNord.add(labelMessage, BorderLayout.CENTER);
 
         // Panneau main joueur (Sud)
         panelMainJoueurActif = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -73,7 +77,6 @@ public class GameView extends JFrame {
         this.setVisible(true);
     }
 
-    // --- NOUVELLE FONCTION : Gestion des 3 rectangles ---
     private void initPanelCartesChoisies() {
         panelCartesChoisies = new JPanel(new GridLayout(1, 3, 5, 0));
         panelCartesChoisies.setBorder(BorderFactory.createTitledBorder("Manche"));
@@ -87,6 +90,7 @@ public class GameView extends JFrame {
         }
     }
 
+    // Fonction demandée pour mettre à jour les 3 rectangles
     public void actualiserCartesManche(List<Cartes> selection) {
         for (int i = 0; i < 3; i++) {
             if (selection != null && i < selection.size()) {
@@ -98,16 +102,23 @@ public class GameView extends JFrame {
         }
     }
 
-    // --- FONCTIONS EXISTANTES (Maintenues pour le Contrôleur) ---
     public void actualiserTourJoueur(String nom) {
         labelMessage.setText("C'est au tour de " + nom);
         labelMessage.setForeground(Color.BLUE);
     }
 
     public void revelerCarteDepuisMain(int idJoueur, Cartes carte) {
+        // Empêche d'ajouter la même carte si on clique plusieurs fois sur le bouton
+        if (!cartesMancheInterne.contains(carte) && cartesMancheInterne.size() < 3) {
+            cartesMancheInterne.add(carte);
+            actualiserCartesManche(cartesMancheInterne);
+        }
+
         ImageIcon icone = changerImageRedimensionnee(carte.getImage(), 150, 220);
-        JOptionPane.showMessageDialog(this, "Valeur : " + carte.getValeur(),
-                "Carte révélée par " + idJoueur, JOptionPane.INFORMATION_MESSAGE, icone);
+        JOptionPane.showMessageDialog(this, 
+            "Valeur : " + carte.getValeur(),
+            "Joueur " + idJoueur + " révèle une carte", 
+            JOptionPane.INFORMATION_MESSAGE, icone);
     }
 
     public void initialiserZoneJoueurs(List<Joueur> joueurs, GameController controller) {
@@ -115,6 +126,11 @@ public class GameView extends JFrame {
         panelEst.removeAll();
         panelOuest.removeAll();
         
+        // Sécurité : Ré-attacher les composants fixes au panelNord après nettoyage
+        panelNord.add(panelCartesChoisies, BorderLayout.EAST);
+        panelNord.add(labelMessage, BorderLayout.CENTER);
+        panelNord.add(containerJoueursNord, BorderLayout.WEST);
+
         BorderLayout layoutSud = (BorderLayout) panelSud.getLayout();
         Component centerC = layoutSud.getLayoutComponent(BorderLayout.CENTER);
         if (centerC != null) panelSud.remove(centerC);
@@ -189,6 +205,12 @@ public class GameView extends JFrame {
 
     public void revelerCarteGrille(int index, Cartes c) {
         if (c != null) {
+        	boutonsGrille[index].setEnabled(false);
+            // AJOUT : Ajout visuel dans le rectangle de manche
+            if (cartesMancheInterne.size() < 3) {
+                cartesMancheInterne.add(c);
+                actualiserCartesManche(cartesMancheInterne);
+            }
             boutonsGrille[index].setIcon(changerImageRedimensionnee(c.getImage(), CARTE_W, CARTE_H));
         } else {
             boutonsGrille[index].setEnabled(false);
@@ -210,17 +232,25 @@ public class GameView extends JFrame {
     }
 
     public void cacherCartesGrille() {
+        // RESET : On vide la liste interne et l'affichage quand on cache les cartes
+        cartesMancheInterne.clear();
+        actualiserCartesManche(cartesMancheInterne);
+
         for (JButton b : boutonsGrille) {
             if (b.isEnabled()) b.setIcon(changerImageRedimensionnee(CHEMIN_DOS, CARTE_W, CARTE_H));
         }
     }
 
     public void actualiserTout(List<Joueur> j, Joueur act, model.Pioche p) {
+    	cartesMancheInterne.clear();
+        actualiserCartesManche(cartesMancheInterne);
+        
         initialiserZoneJoueurs(j, controller);
         afficherMainJoueurActif(act);
         actualiserGrille(p);
         actualiserTourJoueur(act.getNom());
     }
+    
 
     public List<String> demanderNomsJoueurs() {
         List<String> joueurs = new ArrayList<>();
@@ -249,7 +279,7 @@ public class GameView extends JFrame {
         this.controller = c;
         for (int i = 0; i < 9; i++) {
             final int idx = i;
-            boutonsGrille[i].addActionListener(e -> controller.choisirCarteGrille(idx));
+            boutonsGrille[idx].addActionListener(e -> controller.choisirCarteGrille(idx));
         }
     }
 
