@@ -16,7 +16,7 @@ public class GameView extends JFrame {
     private JPanel panelNord, panelSud, panelEst, panelOuest;
     private JPanel panelMainJoueurActif;
     private JPanel containerJoueursNord;
-    
+
     // Composants pour l'affichage de la manche (Haut-Droit)
     private JPanel panelCartesChoisies;
     private JLabel[] labelsCartesChoisies;
@@ -24,12 +24,16 @@ public class GameView extends JFrame {
     private List<Cartes> cartesMancheInterne = new ArrayList<>();
 
     private JLabel labelMessage;
+    private JLabel labelNbCartesGrille;
     private JButton[] boutonsGrille;
     private String CHEMIN_DOS = "carte/back.png";
     private GameController controller;
 
     private final int CARTE_W = 70;
     private final int CARTE_H = 100;
+    // Dimensions pour la grille centrale (plus grandes)
+    private final int GRID_CARTE_W = 100;
+    private final int GRID_CARTE_H = 140;
 
     public GameView() {
         this.setTitle("Trio - Table de Jeu");
@@ -44,7 +48,7 @@ public class GameView extends JFrame {
         labelMessage.setFont(new Font("Arial", Font.BOLD, 18));
         panelCentre.add(labelMessage, BorderLayout.NORTH);
 
-        initGrille(); 
+        initGrille();
         this.add(panelCentre, BorderLayout.CENTER);
 
         // 2. Zones Joueurs et Manche
@@ -115,17 +119,17 @@ public class GameView extends JFrame {
         }
 
         ImageIcon icone = changerImageRedimensionnee(carte.getImage(), 150, 220);
-        JOptionPane.showMessageDialog(this, 
-            "Valeur : " + carte.getValeur(),
-            "Joueur " + idJoueur + " révèle une carte", 
-            JOptionPane.INFORMATION_MESSAGE, icone);
+        JOptionPane.showMessageDialog(this,
+                "Valeur : " + carte.getValeur(),
+                "Joueur " + idJoueur + " révèle une carte",
+                JOptionPane.INFORMATION_MESSAGE, icone);
     }
 
     public void initialiserZoneJoueurs(List<Joueur> joueurs, GameController controller) {
         containerJoueursNord.removeAll();
         panelEst.removeAll();
         panelOuest.removeAll();
-        
+
         // Sécurité : Ré-attacher les composants fixes au panelNord après nettoyage
         panelNord.add(panelCartesChoisies, BorderLayout.EAST);
         panelNord.add(labelMessage, BorderLayout.CENTER);
@@ -133,7 +137,8 @@ public class GameView extends JFrame {
 
         BorderLayout layoutSud = (BorderLayout) panelSud.getLayout();
         Component centerC = layoutSud.getLayoutComponent(BorderLayout.CENTER);
-        if (centerC != null) panelSud.remove(centerC);
+        if (centerC != null)
+            panelSud.remove(centerC);
 
         JPanel containerJStatiqueSud = new JPanel(new FlowLayout(FlowLayout.CENTER));
         panelSud.add(containerJStatiqueSud, BorderLayout.CENTER);
@@ -142,10 +147,18 @@ public class GameView extends JFrame {
             boolean estHorizontal = (i % 2 == 0);
             JPanel p = creerPanelJoueur(joueurs.get(i), controller, estHorizontal);
             switch (i % 4) {
-                case 0: containerJStatiqueSud.add(p); break;
-                case 1: panelOuest.add(p); break;
-                case 2: containerJoueursNord.add(p); break;
-                case 3: panelEst.add(p); break;
+                case 0:
+                    containerJStatiqueSud.add(p);
+                    break;
+                case 1:
+                    panelOuest.add(p);
+                    break;
+                case 2:
+                    containerJoueursNord.add(p);
+                    break;
+                case 3:
+                    panelEst.add(p);
+                    break;
             }
         }
         rafraichirVue();
@@ -164,7 +177,8 @@ public class GameView extends JFrame {
         btnBas.addActionListener(e -> controller.choisirCarteJoueur(j.getId(), false));
 
         JPanel cmd = new JPanel(new GridLayout(1, 2, 5, 0));
-        cmd.add(btnHaut); cmd.add(btnBas);
+        cmd.add(btnHaut);
+        cmd.add(btnBas);
         p.add(cmd);
 
         JPanel trios = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -189,45 +203,108 @@ public class GameView extends JFrame {
         boutonsGrille = new JButton[9];
         for (int i = 0; i < 9; i++) {
             boutonsGrille[i] = new JButton();
-            ImageIcon dos = changerImageRedimensionnee(CHEMIN_DOS, CARTE_W, CARTE_H);
+            ImageIcon dos = changerImageRedimensionnee(CHEMIN_DOS, GRID_CARTE_W, GRID_CARTE_H);
             if (dos != null) {
                 boutonsGrille[i].setIcon(dos);
                 boutonsGrille[i].setContentAreaFilled(false);
                 boutonsGrille[i].setBorderPainted(false);
             }
-            boutonsGrille[i].setPreferredSize(new Dimension(CARTE_W, CARTE_H));
+            boutonsGrille[i].setPreferredSize(new Dimension(GRID_CARTE_W, GRID_CARTE_H));
             panelGrille.add(boutonsGrille[i]);
         }
         JPanel wrapperCentral = new JPanel(new GridBagLayout());
-        wrapperCentral.add(panelGrille);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        wrapperCentral.add(panelGrille, gbc);
+
+        gbc.gridy = 1;
+        gbc.insets = new Insets(10, 0, 0, 0);
+        labelNbCartesGrille = new JLabel("Cartes restantes : 9");
+        wrapperCentral.add(labelNbCartesGrille, gbc);
+
         panelCentre.add(wrapperCentral, BorderLayout.CENTER);
     }
 
     public void revelerCarteGrille(int index, Cartes c) {
         if (c != null) {
-        	boutonsGrille[index].setEnabled(false);
+            boutonsGrille[index].setEnabled(false);
             // AJOUT : Ajout visuel dans le rectangle de manche
             if (cartesMancheInterne.size() < 3) {
                 cartesMancheInterne.add(c);
                 actualiserCartesManche(cartesMancheInterne);
             }
-            boutonsGrille[index].setIcon(changerImageRedimensionnee(c.getImage(), CARTE_W, CARTE_H));
+            boutonsGrille[index].setIcon(changerImageRedimensionnee(c.getImage(), GRID_CARTE_W, GRID_CARTE_H));
         } else {
             boutonsGrille[index].setEnabled(false);
             boutonsGrille[index].setIcon(null);
         }
     }
 
+    public void redimensionnerGrille(int nbCartes) {
+        panelGrille.removeAll();
+        int rows = 3, cols = 3;
+        if (nbCartes == 8) {
+            rows = 2;
+            cols = 4;
+        } else if (nbCartes == 6) {
+            rows = 2;
+            cols = 3;
+        }
+
+        panelGrille.setLayout(new GridLayout(rows, cols, 10, 10));
+        boutonsGrille = new JButton[nbCartes];
+
+        for (int i = 0; i < nbCartes; i++) {
+            boutonsGrille[i] = new JButton();
+            ImageIcon dos = changerImageRedimensionnee(CHEMIN_DOS, GRID_CARTE_W, GRID_CARTE_H);
+            if (dos != null) {
+                boutonsGrille[i].setIcon(dos);
+                boutonsGrille[i].setContentAreaFilled(false);
+                boutonsGrille[i].setBorderPainted(false);
+            }
+            boutonsGrille[i].setPreferredSize(new Dimension(GRID_CARTE_W, GRID_CARTE_H));
+
+            final int idx = i;
+            // Réattacher le controller si présent
+            if (this.controller != null) {
+                boutonsGrille[i].addActionListener(e -> controller.choisirCarteGrille(idx));
+            }
+
+            panelGrille.add(boutonsGrille[i]);
+        }
+
+        if (labelNbCartesGrille != null) {
+            labelNbCartesGrille.setText("Cartes restantes : " + nbCartes);
+        }
+
+        // Rafraîchir l'affichage
+        panelGrille.revalidate();
+        panelGrille.repaint();
+    }
+
     public void actualiserGrille(model.Pioche pioche) {
-        for (int i = 0; i < 9; i++) {
+        // Sécurité : éviter dépassement d'index si la pioche change de taille
+
+        // Note: pioche.getCartes().size() est constant (taille de la liste avec nulls)
+        // if implemented that way.
+        // Actually Pioche contains `ArrayList<Cartes>` which might have different size?
+        // Pioche is initialized with null replacements in retirerCarte.
+        // But `listeCartes` size stays same.
+
+        for (int i = 0; i < boutonsGrille.length; i++) {
             Cartes c = pioche.devoilerCarte(i);
             if (c == null) {
                 boutonsGrille[i].setEnabled(false);
                 boutonsGrille[i].setIcon(null);
             } else {
-                boutonsGrille[i].setIcon(changerImageRedimensionnee(CHEMIN_DOS, CARTE_W, CARTE_H));
+                boutonsGrille[i].setIcon(changerImageRedimensionnee(CHEMIN_DOS, GRID_CARTE_W, GRID_CARTE_H));
                 boutonsGrille[i].setEnabled(true);
             }
+        }
+        if (labelNbCartesGrille != null) {
+            labelNbCartesGrille.setText("Cartes restantes : " + pioche.getNbCartesRestantes());
         }
     }
 
@@ -237,42 +314,47 @@ public class GameView extends JFrame {
         actualiserCartesManche(cartesMancheInterne);
 
         for (JButton b : boutonsGrille) {
-            if (b.isEnabled()) b.setIcon(changerImageRedimensionnee(CHEMIN_DOS, CARTE_W, CARTE_H));
+            if (b.isEnabled())
+                b.setIcon(changerImageRedimensionnee(CHEMIN_DOS, GRID_CARTE_W, GRID_CARTE_H));
         }
     }
 
     public void actualiserTout(List<Joueur> j, Joueur act, model.Pioche p) {
-    	cartesMancheInterne.clear();
+        cartesMancheInterne.clear();
         actualiserCartesManche(cartesMancheInterne);
-        
+
         initialiserZoneJoueurs(j, controller);
         afficherMainJoueurActif(act);
         actualiserGrille(p);
         actualiserTourJoueur(act.getNom());
     }
-    
 
     public List<String> demanderNomsJoueurs() {
         List<String> joueurs = new ArrayList<>();
         String input = JOptionPane.showInputDialog(this, "Nombre de joueurs (3-6) ?");
-        if (input == null) return new ArrayList<>();
+        if (input == null)
+            return new ArrayList<>();
         try {
             int nb = Math.min(6, Math.max(3, Integer.parseInt(input)));
             for (int i = 0; i < nb; i++) {
                 String n = JOptionPane.showInputDialog(this, "Nom joueur " + (i + 1));
                 joueurs.add(n != null && !n.isEmpty() ? n : "J" + (i + 1));
             }
-        } catch (Exception e) { }
+        } catch (Exception e) {
+        }
         return joueurs;
     }
 
     private ImageIcon changerImageRedimensionnee(String chemin, int w, int h) {
-        if (chemin == null) return null;
+        if (chemin == null)
+            return null;
         try {
             ImageIcon icon = new ImageIcon(chemin);
             Image img = icon.getImage().getScaledInstance(w, h, Image.SCALE_SMOOTH);
             return new ImageIcon(img);
-        } catch (Exception e) { return null; }
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public void setController(GameController c) {
@@ -283,8 +365,20 @@ public class GameView extends JFrame {
         }
     }
 
-    public void afficherMessage(String m) { labelMessage.setText(m); }
-    public void afficherVictoire(String n) { JOptionPane.showMessageDialog(this, "Gagné par " + n); }
-    public void actualiserScores(List<Joueur> j) { initialiserZoneJoueurs(j, this.controller); }
-    private void rafraichirVue() { this.revalidate(); this.repaint(); }
+    public void afficherMessage(String m) {
+        labelMessage.setText(m);
+    }
+
+    public void afficherVictoire(String n) {
+        JOptionPane.showMessageDialog(this, "Gagné par " + n);
+    }
+
+    public void actualiserScores(List<Joueur> j) {
+        initialiserZoneJoueurs(j, this.controller);
+    }
+
+    private void rafraichirVue() {
+        this.revalidate();
+        this.repaint();
+    }
 }

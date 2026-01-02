@@ -22,6 +22,7 @@ public class GameController {
         List<String> joueurs = view.demanderNomsJoueurs();
         if (joueurs != null && !joueurs.isEmpty()) {
             game.start(joueurs);
+            view.redimensionnerGrille(game.getGrilleCentrale().getTaille());
             view.initialiserZoneJoueurs(game.getListeJoueurs(), this);
             // On affiche la main du premier joueur
             view.afficherMainJoueurActif(game.getJoueurActif());
@@ -50,14 +51,15 @@ public class GameController {
         if (interactionVerrouillee)
             return;
 
-        // Utilisation de la méthode tirerCarteJoueur du modèle 
+        // Utilisation de la méthode tirerCarteJoueur du modèle
         // qui gère le retrait du deck et la mise en réserve
         Cartes c = game.tirerCarteJoueur(idJoueur - 1, estHaute);
 
         if (c != null) {
             view.revelerCarteDepuisMain(idJoueur, c);
             view.afficherMainJoueurActif(game.getJoueurActif());
-            view.afficherMessage(game.getJoueurActif().getNom() + " révèle une carte de " + game.getJoueurParId(idJoueur-1).getNom());
+            view.afficherMessage(game.getJoueurActif().getNom() + " révèle une carte de "
+                    + game.getJoueurParId(idJoueur - 1).getNom());
             traiterSelection(c);
         }
     }
@@ -86,7 +88,7 @@ public class GameController {
         // Le modèle a déjà fait nextPlayer(), donc le joueur qui a gagné le trio
         // est le "joueur précédent"
         Joueur gagnantPotentiel = game.getJoueurPrecedent();
-        
+
         view.afficherMessage("Trio trouvé par " + gagnantPotentiel.getNom() + " !");
         game.viderReserve();
 
@@ -96,9 +98,9 @@ public class GameController {
             view.actualiserTout(game.getListeJoueurs(), game.getJoueurActif(), game.getGrilleCentrale());
             interactionVerrouillee = true;
             view.afficherVictoire(gagnantPotentiel.getNom());
-        } 
-        else {
-            // 2. Si pas de victoire, on attend un peu et on passe au joueur suivant visuellement
+        } else {
+            // 2. Si pas de victoire, on attend un peu et on passe au joueur suivant
+            // visuellement
             interactionVerrouillee = true; // On bloque pendant l'animation
             Timer timer = new Timer(2000, e -> {
                 view.cacherCartesGrille();

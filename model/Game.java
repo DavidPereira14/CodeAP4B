@@ -68,11 +68,17 @@ public class Game {
     }
 
     private void distribuer() {
-        for (int i = 0; i < 9; i++) {
+        int nbJoueurs = this.listeJoueurs.size();
+        int nbCartesCentre = 9; // Default for 3 players
+        if (nbJoueurs == 4)
+            nbCartesCentre = 8;
+        else if (nbJoueurs >= 5)
+            nbCartesCentre = 6;
+
+        for (int i = 0; i < nbCartesCentre; i++) {
             this.grilleCentrale.ajouterCarte(this.paquetInitial.retirerDerniereCarte());
         }
 
-        int nbJoueurs = this.listeJoueurs.size();
         int indexJoueur = ThreadLocalRandom.current().nextInt(nbJoueurs);
 
         while (!this.paquetInitial.estVide()) {
@@ -149,7 +155,8 @@ public class Game {
 
     public Cartes tirerCarteJoueur(int idJoueur, boolean estHaut) {
         Joueur j = getJoueurParId(idJoueur);
-        if (j == null) return null;
+        if (j == null)
+            return null;
 
         // Appel de vos méthodes de DeckJoueur
         Cartes c = estHaut ? j.getDeckJoueur().recupererCPH() : j.getDeckJoueur().recupererCPB();
@@ -165,7 +172,7 @@ public class Game {
 
     private void terminerLeTour(boolean estSucces) {
         cartesReveleesCeTour.clear();
-       nextPlayer();
+        nextPlayer();
     }
 
     // --- UTILITAIRES ---
@@ -177,7 +184,7 @@ public class Game {
     public boolean checkVictory(Joueur j) {
         return j.getStock().a_gagner();
     }
-    
+
     public Joueur getJoueurPrecedent() {
         int idPrecedent = (idJoueurActif - 1 + listeJoueurs.size()) % listeJoueurs.size();
         return listeJoueurs.get(idPrecedent);

@@ -9,7 +9,6 @@ public class Pioche extends EnsembleDeCartes {
     }
 
     // Override pour empêcher le décalage : on remplace par null
-    // Modifié par Blusk
     @Override
     public boolean retirerCarte(Cartes c) {
         int index = this.listeCartes.indexOf(c);
@@ -21,7 +20,6 @@ public class Pioche extends EnsembleDeCartes {
     }
 
     // Override pour gérer les nulls
-    // Fait par Blusk
     public Cartes devoilerCarte(int index) {
         if (index >= 0 && index < this.listeCartes.size()) {
             return this.listeCartes.get(index);
@@ -29,4 +27,13 @@ public class Pioche extends EnsembleDeCartes {
         return null;
     }
 
+    public int getNbCartesRestantes() {
+        int count = 0;
+        for (Cartes c : this.listeCartes) {
+            if (c != null) {
+                count++;
+            }
+        }
+        return count;
+    }
 }
